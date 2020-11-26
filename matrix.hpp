@@ -1,3 +1,4 @@
+
 #ifndef SJTU_MATRIX_HPP
 #define SJTU_MATRIX_HPP
 
@@ -16,48 +17,68 @@ namespace sjtu
 	{
 	private:
 		// your private member variables here.
-		
+		int _n=0,_m=0;
+		T *_element;
+
 	public:
 		Matrix() = default;
-		
-		Matrix(size_t n, size_t m, T _init = T())
+
+		//构造函数
+		Matrix(size_t n, size_t m, T _init = T()):_n(n),_m(m)
 		{
-			
+			_element=new T [n*m+1];
+			for(int i=1;i<=n;++i)
+            {
+			    for(int j=1;j<=m;++j)
+                {
+			        _element[i*m+j]=_init;
+                }
+            }
 		}
 		
 		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T())
 		{
 			
 		}
+
+		//拷贝构造
+		Matrix(const Matrix &Mat)
+		{
+			_n=Mat._n;
+			_m=Mat._m;
+			_element=new T [_n*_m+1];
+			for(int i=1;i<=_n;i++)
+            {
+			    for(int j=1;j<=_m;j++)
+                {
+			        _element[j+(i-1)*_m]=Mat._element[j+(i-1)*_m];
+                }
+            }
+		}
 		
-		Matrix(const Matrix &o)
+		template <class U>
+		Matrix(const Matrix<U> &Mat)
+		{
+			
+		}
+		
+		Matrix &operator = (const Matrix &Mat)
 		{
 			
 		}
 		
 		template <class U>
-		Matrix(const Matrix<U> &o)
+		Matrix &operator=(const Matrix<U> &Mat)
 		{
 			
 		}
 		
-		Matrix &operator=(const Matrix &o)
+		Matrix(Matrix &&Mat) noexcept
 		{
 			
 		}
 		
-		template <class U>
-		Matrix &operator=(const Matrix<U> &o)
-		{
-			
-		}
-		
-		Matrix(Matrix &&o) noexcept
-		{
-			
-		}
-		
-		Matrix &operator=(Matrix &&o) noexcept
+		Matrix &operator=(Matrix &&Mat) noexcept
 		{
 			
 		}
@@ -117,37 +138,61 @@ namespace sjtu
 		
 		
 	public:
+	    //==重载.
 		template <class U>
-		bool operator==(const Matrix<U> &o) const
+		bool operator == (const Matrix<U> &Mat) const
+		{
+			if(Mat._n!=_n || Mat._m!=_m) return false;
+			for(int i=1;i<=_n;i++)
+            {
+			    for(int j=1;j<=_m;j++)
+                {
+			        if(Mat._element[j+(i-1)*_m]!=_element[j+(i-1)*_m])  return false;
+                }
+            }
+			return true;
+		}
+		
+		template <class U>
+		bool operator != (const Matrix<U> &Mat) const
+		{
+			
+		}
+
+		//取反.
+		//todo: If the class isn't the integer.
+		Matrix operator - () const
+		{
+            for(int i=1;i<=_n;i++)
+            {
+                for(int j=1;j<=_m;j++)
+                {
+                    _element[j+(i-1)*_m]=-_element[j+(i-1)*_m];
+                }
+            }
+		}
+
+		//todo: Solve the template problem
+		template <class U>
+		Matrix &operator += (const Matrix<U> &Mat)
+		{
+            for(int i=1;i<=_n;i++)
+            {
+                for(int j=1;j<=_m;j++)
+                {
+                    _element[j+(i-1)*_m]+=Mat._element[j+(i-1)*_m];
+                }
+            }
+		}
+		
+		template <class U>
+		Matrix &operator -= (const Matrix<U> &Mat)
 		{
 			
 		}
 		
 		template <class U>
-		bool operator!=(const Matrix<U> &o) const
-		{
-			
-		}
-		
-		Matrix operator-() const
-		{
-			
-		}
-		
-		template <class U>
-		Matrix &operator+=(const Matrix<U> &o)
-		{
-			
-		}
-		
-		template <class U>
-		Matrix &operator-=(const Matrix<U> &o)
-		{
-			
-		}
-		
-		template <class U>
-		Matrix &operator*=(const U &x)
+		Matrix &operator *= (const U &x)
 		{
 			
 		}
@@ -178,7 +223,7 @@ namespace sjtu
 
 			
 		public:
-			difference_type operator-(const iterator &o)
+			difference_type operator-(const iterator &Mat)
 			{
 				
 			}
@@ -233,12 +278,12 @@ namespace sjtu
 				
 			}
 			
-			bool operator==(const iterator &o) const
+			bool operator==(const iterator &Mat) const
 			{
 				
 			}
 			
-			bool operator!=(const iterator &o) const
+			bool operator!=(const iterator &Mat) const
 			{
 				
 			}
@@ -299,3 +344,4 @@ namespace sjtu
 
 #endif //SJTU_MATRIX_HPP
 
+//todo: 增加鲁棒性调试.
