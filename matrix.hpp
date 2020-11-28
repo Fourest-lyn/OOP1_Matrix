@@ -18,7 +18,7 @@ namespace sjtu
 	private:
 		// your private member variables here.
 		int _n=0,_m=0;
-		T *_element;
+		T *element;
 
 	public:
 		Matrix() = default;
@@ -27,12 +27,12 @@ namespace sjtu
 		//todo: Find the meaning of "T _init = T()".
 		Matrix(size_t n, size_t m, T _init = T()):_n(n),_m(m)
 		{
-			_element=new T [n*m];
+			element=new T [n*m];
 			for(int i=0;i<n;++i)
             {
 			    for(int j=0;j<m;++j)
                 {
-			        _element[i*m+j]=_init;
+			        element[i*m+j]=_init;
                 }
             }
 		}
@@ -41,12 +41,12 @@ namespace sjtu
 		//todo: Check this point.
 		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T()):Matrix(sz.first,sz.second,_init)
 		{
-//			_element=new T [_n*_m+1];
+//			element=new T [_n*_m+1];
 //			for(int i=1;i<=_n;++i)
 //            {
 //			    for(int j=1;j<=_m;++j)
 //                {
-//			        _element[i*_m+j]=_init;
+//			        element[i*_m+j]=_init;
 //                }
 //            }
 		}
@@ -56,12 +56,12 @@ namespace sjtu
 		{
 			_n=Mat._n;
 			_m=Mat._m;
-			_element=new T [_n*_m+1];
+			element=new T [_n*_m+1];
 			for(int i=0;i<_n;i++)
             {
 			    for(int j=0;j<_m;j++)
                 {
-			        _element[j+i*_m]=Mat._element[j+i*_m];
+			        element[j+i*_m]=Mat.element[j+i*_m];
                 }
             }
 		}
@@ -78,7 +78,7 @@ namespace sjtu
 		}
 		
 		template <class U>
-		Matrix &operator=(const Matrix<U> &Mat)
+		Matrix &operator = (const Matrix<U> &Mat)
 		{
 			
 		}
@@ -88,8 +88,8 @@ namespace sjtu
 		{
 			_n=Mat._n;
 			_m=Mat._m;
-			_element=Mat._element;
-			Mat._element=nullptr;
+			element=Mat.element;
+			Mat.element=nullptr;
 		}
 		
 		Matrix &operator=(Matrix &&Mat) noexcept
@@ -98,7 +98,7 @@ namespace sjtu
 		}
 
 		//析构函数.
-		~Matrix() { delete [] _element; }
+		~Matrix() { delete [] element; }
 		
 		Matrix(std::initializer_list<std::initializer_list<T>> il)
 		{
@@ -109,15 +109,38 @@ namespace sjtu
 		size_t rowLength() const { return _n; }
 		
 		size_t columnLength() const { return _m; }
-		
+
+		//Resize the Matrix.
 		void resize(size_t n, size_t m, T _init = T())
 		{
-			
+			if(n*m<_n*_m)
+            {
+			    T *temp;
+			    temp=new T [n*m];
+			    for(int i=0;i<n*m;++i) temp[i]=element[i];
+                delete [] element;
+                element=temp;
+                _n=n;
+                _m=m;
+            }
+			else if(n*m==_n*_m) {_n=n; _m=m;}
+			else
+            {
+                T *temp;
+                temp=new T [n*m];
+                for(int i=0;i<_n*_m;++i) temp[i]=element[i];
+                for(int i=_n*_m+1;i<n*m;++i) temp[i]=_init;
+                delete [] element;
+                element=temp;
+                _n=n;
+                _m=m;
+            }
+
 		}
 		
 		void resize(std::pair<size_t, size_t> sz, T _init = T())
 		{
-			
+			resize({sz.first,sz.second},_init);
 		}
 		
 		std::pair<size_t, size_t> size() const
@@ -132,33 +155,43 @@ namespace sjtu
             {
 			    for(int j=0;j<_m;++j)
                 {
-			        _element[i*_m+j]=0;
+			        element[i*_m+j]=0;
                 }
             }
-			delete [] _element;
+			delete [] element;
 			_n=0;
 			_m=0;
 		}
 		
 	public:
-		const T &operator()(size_t i, size_t j) const
+		const T &operator () (size_t i, size_t j) const
 		{
-			
+			return element[i*_m+j];
 		}
 		
-		T &operator()(size_t i, size_t j)
+		T &operator () (size_t i, size_t j)
 		{
-			
+			return element[i*_m+j];
 		}
 		
 		Matrix<T> row(size_t i) const
 		{
-			
+		    Matrix<T> temp_Mat(1,_m,0);
+			for(int j=0;j<_m;++j)
+            {
+                temp_Mat.element[j]=element[i*_m+j];
+            }
+			return temp_Mat;
 		}
 		
 		Matrix<T> column(size_t i) const
 		{
-			
+			Matrix<T> temp_Mat(_n,1,0);
+			for(int j=0;j<_n;++j)
+            {
+			    temp_Mat.element[j]=element[j*_m+i];
+            }
+			return temp_Mat;
 		}
 		
 		
@@ -172,7 +205,7 @@ namespace sjtu
             {
 			    for(int j=0;j<_m;j++)
                 {
-			        if(Mat._element[j+i*_m]!=_element[j+i*_m])  return false;
+			        if(Mat.element[j+i*_m]!=element[j+i*_m])  return false;
                 }
             }
 			return true;
@@ -186,14 +219,13 @@ namespace sjtu
 		}
 
 		//取反.
-		//todo: If the class isn't the integer.
 		Matrix operator - () const
 		{
             for(int i=0;i<_n;i++)
             {
                 for(int j=0;j<_m;j++)
                 {
-                    _element[j+i*_m]=-_element[j+i*_m];
+                    element[j+i*_m]=-element[j+i*_m];
                 }
             }
 		}
@@ -205,7 +237,7 @@ namespace sjtu
             {
                 for(int j=0;j<_m;j++)
                 {
-                    _element[j+i*_m]+=Mat._element[j+i*_m];
+                    element[j+i*_m]+=Mat.element[j+i*_m];
                 }
             }
 		}
@@ -217,7 +249,7 @@ namespace sjtu
             {
                 for(int j=0;j<_m;j++)
                 {
-                    _element[j+i*_m]-=Mat._element[j+i*_m];
+                    element[j+i*_m]-=Mat.element[j+i*_m];
                 }
             }
 		}
@@ -229,14 +261,24 @@ namespace sjtu
             {
                 for(int j=0;j<_m;j++)
                 {
-                    _element[j+i*_m]*=k;
+                    element[j+i*_m]*=k;
                 }
             }
 		}
 		
 		Matrix tran() const
 		{
-
+            Matrix<T> output;
+            output._n=_m;
+            output._m=_n;
+            for(int i=0;i<_n;++i)
+            {
+                for(int j=0;j<_m;++j)
+                {
+                    output.element[j][i]=element[i][j];
+                }
+            }
+            return output;
 		}
 		
 	public: // iterator
@@ -260,7 +302,7 @@ namespace sjtu
 
 			
 		public:
-			difference_type operator-(const iterator &Mat)
+			difference_type operator-(const iterator &temp)
 			{
 				
 			}
@@ -315,12 +357,12 @@ namespace sjtu
 				
 			}
 			
-			bool operator==(const iterator &Mat) const
+			bool operator==(const iterator &temp) const
 			{
 				
 			}
 			
-			bool operator!=(const iterator &Mat) const
+			bool operator!=(const iterator &temp) const
 			{
 				
 			}
@@ -350,13 +392,29 @@ namespace sjtu
 	template <class T, class U>
 	auto operator * (const Matrix<T> &mat, const U &x)
 	{
-		
+        Matrix<T> temp=mat;
+        for(int i=0;i<mat.rowLength();++i)
+        {
+            for(int j=0;j<mat.columnLength();++j)
+            {
+                temp(i,j)=mat(i,j)*x;
+            }
+        }
 	}
-	
+
+	//todo: Process the relation of U & T.
+	//todo: Try to use iterator.
 	template <class T, class U>
 	auto operator * (const U &x, const Matrix<T> &mat)
 	{
-		
+	    Matrix<T> temp=mat;
+		for(int i=0;i<mat.rowLength();++i)
+        {
+		    for(int j=0;j<mat.columnLength();++j)
+            {
+                temp(i,j)=mat(i,j)*x;
+            }
+        }
 	}
 	
 	template <class U, class V>
@@ -382,3 +440,4 @@ namespace sjtu
 #endif //SJTU_MATRIX_HPP
 
 //todo: 增加鲁棒性调试.
+//todo: Learning the usage of iterator.
