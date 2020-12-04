@@ -15,6 +15,24 @@ namespace sjtu
 	template <class T>
 	class Matrix
 	{
+
+	//Friends.
+    template<class U>
+    friend auto operator * (const Matrix<T> &mat, const U &x);
+
+    template<class U>
+    friend auto operator * (const U &x, const Matrix<T> &mat);
+
+    template<class U,class V>
+    friend auto operator * (const Matrix<U> &a, const Matrix<V> &b);
+
+    template <class U, class V>
+    friend auto operator + (const Matrix<U> &a, const Matrix<V> &b);
+
+    template <class U, class V>
+    friend auto operator - (const Matrix<U> &a, const Matrix<V> &b);
+
+
 	private:
 		// your private member variables here.
 		int _n=0,_m=0;
@@ -24,7 +42,6 @@ namespace sjtu
 		Matrix() = default;
 
 		//构造函数
-		//todo: Find the meaning of "T _init = T()".
 		Matrix(size_t n, size_t m, T _init = T()):_n(n),_m(m)
 		{
 			element=new T [n*m];
@@ -39,16 +56,9 @@ namespace sjtu
 
 		//类型转换......?
 		//todo: Check this point.
-		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T()):Matrix(sz.first,sz.second,_init)
+		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T())
 		{
-//			element=new T [_n*_m+1];
-//			for(int i=1;i<=_n;++i)
-//            {
-//			    for(int j=1;j<=_m;++j)
-//                {
-//			        element[i*_m+j]=_init;
-//                }
-//            }
+            Matrix(sz.first,sz.second,_init);
 		}
 
 		//拷贝构造
@@ -69,9 +79,19 @@ namespace sjtu
 		template <class U>
 		Matrix(const Matrix<U> &Mat)
 		{
-			
+            _n=Mat._n;
+            _m=Mat._m;
+            element=new T [_n*_m+1];
+            for(int i=0;i<_n;i++)
+            {
+                for(int j=0;j<_m;j++)
+                {
+                    element[j+i*_m]=T(Mat.element[j+i*_m]);
+                }
+            }
 		}
-		
+
+		//todo: Complete this.
 		Matrix &operator = (const Matrix &Mat)
 		{
 			
@@ -94,12 +114,19 @@ namespace sjtu
 		
 		Matrix &operator=(Matrix &&Mat) noexcept
 		{
-			
+			if(&Mat==*this) return *this;
+            delete [] element;
+            _n=Mat._n;
+            _m=Mat._m;
+            element=Mat.element;
+            Mat.element=nullptr;
+            return *this;
 		}
 
 		//析构函数.
 		~Matrix() { delete [] element; }
-		
+
+		//todo: Complete this.
 		Matrix(std::initializer_list<std::initializer_list<T>> il)
 		{
 			
@@ -196,7 +223,7 @@ namespace sjtu
 		
 		
 	public:
-	    // ==重载.
+	    // 重载==.
 		template <class U>
 		bool operator == (const Matrix<U> &Mat) const
 		{
@@ -211,7 +238,7 @@ namespace sjtu
 			return true;
 		}
 
-		// !=重载.
+		// 重载!=.
 		template <class U>
 		bool operator != (const Matrix<U> &Mat) const
 		{
@@ -228,42 +255,55 @@ namespace sjtu
                     element[j+i*_m]=-element[j+i*_m];
                 }
             }
+            return *this;
 		}
 
 		template <class U>
 		Matrix &operator += (const Matrix<U> &Mat)
 		{
+            Matrix<decltype(element[0]+Mat.element[0])> temp(_n,_m);
             for(int i=0;i<_n;i++)
             {
                 for(int j=0;j<_m;j++)
                 {
-                    element[j+i*_m]+=Mat.element[j+i*_m];
+                    temp.element[j+i*_m]=element[j+i*_m]+Mat.element[j+i*_m];
                 }
             }
+            this->clear();
+            *this=temp;
+            return *this;
 		}
 		
 		template <class U>
 		Matrix &operator -= (const Matrix<U> &Mat)
 		{
+            Matrix<decltype(element[0]-Mat.element[0])> temp(_n,_m);
             for(int i=0;i<_n;i++)
             {
                 for(int j=0;j<_m;j++)
                 {
-                    element[j+i*_m]-=Mat.element[j+i*_m];
+                    temp.element[j+i*_m]=element[j+i*_m]-Mat.element[j+i*_m];
                 }
             }
+            this->clear();
+            *this=temp;
+            return *this;
 		}
 		
 		template <class U>
 		Matrix &operator *= (const U &k)
 		{
+            Matrix<decltype(element[0]*k)> temp(_n,_m);
             for(int i=0;i<_n;i++)
             {
                 for(int j=0;j<_m;j++)
                 {
-                    element[j+i*_m]*=k;
+                    temp.element[j+i*_m]=element[j+i*_m]*k;
                 }
             }
+            this->clear();
+            *this=temp;
+            return *this;
 		}
 		
 		Matrix tran() const
@@ -299,17 +339,18 @@ namespace sjtu
 			iterator &operator=(const iterator &) = default;
 			
 		private:
-
+            pointer p;
 			
 		public:
 			difference_type operator-(const iterator &temp)
 			{
-				
+				return p-temp.p;
 			}
 			
 			iterator &operator+=(difference_type offset)
 			{
-				
+			    this->p+=offset;
+			    return *this;
 			}
 			
 			iterator operator+(difference_type offset) const
@@ -329,53 +370,64 @@ namespace sjtu
 			
 			iterator &operator++()
 			{
-				
+				++p;
+				return *this;
 			}
 			
 			iterator operator++(int)
 			{
-				
+				auto temp=*this;
+				this->p++;
+				return temp;
 			}
 			
 			iterator &operator--()
 			{
-				
+				--p;
+				return *this;
 			}
 			
 			iterator operator--(int)
 			{
-				
+				auto temp=*this;
+				this->p--;
+				return temp;
 			}
 			
 			reference operator*() const
 			{
-				
+				return *p;
 			}
 			
 			pointer operator->() const
 			{
-				
+				return p;
 			}
 			
 			bool operator==(const iterator &temp) const
 			{
-				
+			    //todo
+                return true;
 			}
 			
 			bool operator!=(const iterator &temp) const
 			{
-				
+                //todo
+                return true;
 			}
 		};
 		
 		iterator begin()
 		{
-			
+			iterator output;
+			output.p=element;
+			return output;
 		}
 		
 		iterator end()
 		{
-			
+			iterator temp;
+			temp.p=&element[_m*_n-1];
 		}
 		
 		std::pair<iterator, iterator> subMatrix(std::pair<size_t, size_t> l, std::pair<size_t, size_t> r)
@@ -392,7 +444,9 @@ namespace sjtu
 	template <class T, class U>
 	auto operator * (const Matrix<T> &mat, const U &x)
 	{
-        Matrix<T> temp=mat;
+	    T temp_t;
+	    U temp_u;
+        Matrix<decltype(temp_t*temp_u)> temp(mat.size());
         for(int i=0;i<mat.rowLength();++i)
         {
             for(int j=0;j<mat.columnLength();++j)
@@ -400,14 +454,16 @@ namespace sjtu
                 temp(i,j)=mat(i,j)*x;
             }
         }
+        return temp;
 	}
 
-	//todo: Process the relation of U & T.
 	//todo: Try to use iterator.
 	template <class T, class U>
 	auto operator * (const U &x, const Matrix<T> &mat)
 	{
-	    Matrix<T> temp=mat;
+        T temp_t;
+        U temp_u;
+        Matrix<decltype(temp_t*temp_u)> temp(mat.size());
 		for(int i=0;i<mat.rowLength();++i)
         {
 		    for(int j=0;j<mat.columnLength();++j)
@@ -415,24 +471,55 @@ namespace sjtu
                 temp(i,j)=mat(i,j)*x;
             }
         }
+        return temp;
 	}
 	
 	template <class U, class V>
 	auto operator * (const Matrix<U> &a, const Matrix<V> &b)
 	{
-		
+//	    if(a.columnLength()!=b.rowLength()) printf("[Error]\n");
+        Matrix<decltype(a(0,0)*b(0,0))> temp(a.rowLength(),b.columnLength());
+        for(int i=0;i<temp.rowLength();++i)
+        {
+            for(int j=0;j<temp.columnLength();++j)
+            {
+                for(int k=0;k<a.columnLength();++k)
+                {
+                    temp(i,k)+=a(i,k)*b(k,j);
+                }
+            }
+        }
+        return temp;
 	}
 	
 	template <class U, class V>
 	auto operator + (const Matrix<U> &a, const Matrix<V> &b)
 	{
-		
+//	    if(a.size()!=b.size()) printf("[Error]\n");
+        Matrix<decltype(a(0,0)+b(0,0))> temp(a.size());
+        for(int i=0;i<temp.rowLength();++i)
+        {
+            for(int j=0;j<temp.columnLength();++j)
+            {
+                temp(i,j)=a(i,j)+b(i,j);
+            }
+        }
+        return temp;
 	}
 	
 	template <class U, class V>
 	auto operator - (const Matrix<U> &a, const Matrix<V> &b)
 	{
-		
+//	    if(a.size()!=b.size()) printf("[Error]\n");
+        Matrix<decltype(a(0,0)-b(0,0))> temp(a.size());
+        for(int i=0;i<temp.rowLength();++i)
+        {
+            for(int j=0;j<temp.columnLength();++j)
+            {
+                temp(i,j)=a(i,j)-b(i,j);
+            }
+        }
+        return temp;
 	}
 	
 }
