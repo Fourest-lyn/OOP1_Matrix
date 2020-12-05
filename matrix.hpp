@@ -17,11 +17,11 @@ namespace sjtu
 	{
 
 	//Friends.
-    template<class U>
-    friend auto operator * (const Matrix<T> &mat, const U &x);
+    template<class U,class V>
+    friend auto operator * (const Matrix<U> &mat, const V &x);
 
-    template<class U>
-    friend auto operator * (const U &x, const Matrix<T> &mat);
+    template<class U,class V>
+    friend auto operator * (const U &x, const Matrix<V> &mat);
 
     template<class U,class V>
     friend auto operator * (const Matrix<U> &a, const Matrix<V> &b);
@@ -55,7 +55,6 @@ namespace sjtu
 		}
 
 		//类型转换......?
-		//todo: Check this point.
 		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T())
 		{
             Matrix(sz.first,sz.second,_init);
@@ -126,7 +125,7 @@ namespace sjtu
 		//析构函数.
 		~Matrix() { delete [] element; }
 
-		//todo: Complete this.
+		//todo: Complete the initializer.
 		Matrix(std::initializer_list<std::initializer_list<T>> il)
 		{
 			
@@ -337,102 +336,155 @@ namespace sjtu
 			iterator(const iterator &) = default;
 			
 			iterator &operator=(const iterator &) = default;
+
 			
 		private:
-            pointer p;
-			
+		    //To find the position.
+            size_type pos_x,pos_y;
+
+            //To define in which matrix.
+			size_type left_,right_,up_,down_;
+			Matrix *Mat;
+
+
 		public:
 			difference_type operator-(const iterator &temp)
 			{
-				return p-temp.p;
+
 			}
 			
 			iterator &operator+=(difference_type offset)
 			{
-			    this->p+=offset;
+			    iterator temp;
+			    temp=*this;
+			    while(pos_y>right_)
+                {
+			        pos_y-=(right_-left_+1);
+			        ++pos_x;
+                }
 			    return *this;
 			}
 			
 			iterator operator+(difference_type offset) const
 			{
-				
+				iterator temp;
+				temp=*this;
+				temp+=offset;
+				return temp;
 			}
 			
 			iterator &operator-=(difference_type offset)
 			{
-				
+                iterator temp;
+                temp=*this;
+                while(pos_y<left_)
+                {
+                    pos_y+=(right_-left_+1);
+                    --pos_x;
+                }
+                return *this;
 			}
 			
 			iterator operator-(difference_type offset) const
 			{
-				
+				iterator temp;
+				temp=*this;
+				temp-=offset;
+				return temp;
 			}
 			
 			iterator &operator++()
 			{
-				++p;
+				++pos_y;
+				if(pos_y>right_) {pos_y=left_; ++pos_x;}
 				return *this;
 			}
 			
 			iterator operator++(int)
 			{
 				auto temp=*this;
-				this->p++;
+                ++pos_y;
+                if(pos_y>right_) {pos_y=left_; ++pos_x;}
 				return temp;
 			}
 			
 			iterator &operator--()
 			{
-				--p;
+				--pos_y;
+				if(pos_y<left_) {pos_y=right_; --pos_x;}
 				return *this;
 			}
 			
 			iterator operator--(int)
 			{
 				auto temp=*this;
-				this->p--;
+                --pos_y;
+                if(pos_y<left_) {pos_y=right_; --pos_x;}
 				return temp;
 			}
 			
 			reference operator*() const
 			{
-				return *p;
+                return Mat->element[pos_x*(right_-left_+1)+pos_y];
 			}
 			
 			pointer operator->() const
 			{
-				return p;
+                pointer p;
+                p=&Mat->element[pos_x*(right_-left_+1)+pos_y];
+                return p;
 			}
 			
 			bool operator==(const iterator &temp) const
 			{
-			    //todo
-                return true;
+			    if(Mat!=temp.Mat) return false;
+			    if(pos_x!=temp.pos_x || pos_y!=temp.pos_y) return false;
+			    if(left_!=temp.left_ || right_!=temp.right_) return false;
+			    if(up_!=temp.up_ || down_!=temp.down_) return false;
+			    return true;
 			}
 			
 			bool operator!=(const iterator &temp) const
 			{
-                //todo
-                return true;
+                return !(*this==temp);
 			}
 		};
 		
 		iterator begin()
 		{
-			iterator output;
-			output.p=element;
-			return output;
+			iterator temp;
+			temp.left_=0;
+			temp.right_=_m;
+			temp.up_=0;
+			temp.down_=_n;
+			temp.pos_x=0;
+			temp.pos_y=0;
+			temp.Mat=this;
+			return temp;
 		}
 		
 		iterator end()
 		{
-			iterator temp;
-			temp.p=&element[_m*_n-1];
+            iterator temp;
+            temp.left_=0;
+            temp.right_=_m;
+            temp.up_=0;
+            temp.down_=_n;
+            temp.pos_x=_n-1;
+            temp.pos_y=_m-1;
+            temp.Mat=this;
+            return temp;
 		}
 		
 		std::pair<iterator, iterator> subMatrix(std::pair<size_t, size_t> l, std::pair<size_t, size_t> r)
 		{
-			
+			iterator temp1,temp2;
+			temp1.left_=temp2.left_=temp1.pos_y=l.second;
+			temp1.right_=temp2.right_=temp2.pos_y=r.second;
+			temp1.up_=temp2.up_=temp1.pos_x=l.first;
+			temp1.down_=temp2.down_=temp2.pos_x=r.first;
+			temp1.Mat=temp2.Mat=this;
+			return {temp1,temp2};
         }
 	};
 		
@@ -441,12 +493,12 @@ namespace sjtu
 //
 namespace sjtu
 {
-	template <class T, class U>
-	auto operator * (const Matrix<T> &mat, const U &x)
+	template <class U, class V>
+	auto operator * (const Matrix<U> &mat, const V &x)
 	{
-	    T temp_t;
+	    V temp_v;
 	    U temp_u;
-        Matrix<decltype(temp_t*temp_u)> temp(mat.size());
+        Matrix<decltype(temp_v*temp_u)> temp(mat.size());
         for(int i=0;i<mat.rowLength();++i)
         {
             for(int j=0;j<mat.columnLength();++j)
@@ -457,13 +509,12 @@ namespace sjtu
         return temp;
 	}
 
-	//todo: Try to use iterator.
-	template <class T, class U>
-	auto operator * (const U &x, const Matrix<T> &mat)
+	template <class U,class V>
+	auto operator * (const U &x, const Matrix<V> &mat)
 	{
-        T temp_t;
+        V temp_v;
         U temp_u;
-        Matrix<decltype(temp_t*temp_u)> temp(mat.size());
+        Matrix<decltype(temp_v*temp_u)> temp(mat.size());
 		for(int i=0;i<mat.rowLength();++i)
         {
 		    for(int j=0;j<mat.columnLength();++j)
@@ -527,4 +578,3 @@ namespace sjtu
 #endif //SJTU_MATRIX_HPP
 
 //todo: 增加鲁棒性调试.
-//todo: Learning the usage of iterator.
