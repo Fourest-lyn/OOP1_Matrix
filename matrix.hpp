@@ -36,7 +36,7 @@ namespace sjtu
 	private:
 		// your private member variables here.
 		int _n=0,_m=0;
-		T *element;
+		T *element=nullptr;
 
 	public:
         static void throw_error()
@@ -47,10 +47,12 @@ namespace sjtu
 		Matrix() = default;
 
 		//构造函数
-		Matrix(size_t n, size_t m, T _init = T()):_n(n),_m(m)
+		Matrix(size_t n, size_t m, T _init = T())
 		{
-		    if(n<1 || m<1) throw_error();
-			element=new T [n*m];
+		    _n=n;
+		    _m=m;
+		    if(n<0 || m<0) throw_error();
+			if(n*m!=0) element=new T [n*m];
 			for(int i=0;i<n;++i)
             {
 			    for(int j=0;j<m;++j)
@@ -71,7 +73,7 @@ namespace sjtu
 		{
 			_n=Mat._n;
 			_m=Mat._m;
-			element=new T [_n*_m+1];
+			if (_n*_m!=0) element=new T [_n*_m];
 			for(int i=0;i<_n;i++)
             {
 			    for(int j=0;j<_m;j++)
@@ -84,14 +86,14 @@ namespace sjtu
 		template <class U>
 		Matrix(const Matrix<U> &Mat)
 		{
-            _n=Mat._n;
-            _m=Mat._m;
-            element=new T [_n*_m+1];
+            _n=Mat.rowLength();
+            _m=Mat.columnLength();
+            if (_n*_m!=0) element=new T [_n*_m];
             for(int i=0;i<_n;i++)
             {
                 for(int j=0;j<_m;j++)
                 {
-                    element[j+i*_m]=T(Mat.element[j+i*_m]);
+                    element[j+i*_m]=T(Mat(i,j));
                 }
             }
 		}
@@ -99,24 +101,25 @@ namespace sjtu
 		Matrix &operator = (const Matrix &Mat)
 		{
 			if(&Mat==this) return *this;
-            delete [] element;
+            clear();
             _n=Mat._n;
             _m=Mat._m;
-            element=new T[_n*_m];
-            for(int i=0;i<_n*_m;++i) element[i]=Mat.element[i];
+            if (_n*_m!=0) element=new T [_n*_m];
+            for(int i=0;i<_n*_m;++i) element[i]=T(Mat.element[i]);
             return *this;
 		}
 		
 		template <class U>
 		Matrix &operator = (const Matrix<U> &Mat)
 		{
-			delete [] element;
-            Matrix<U> temp;
-            *this=temp;
-            _n=Mat._n;
-            _m=Mat._m;
-            element=new U[_n*_m];
-            for(int i=0;i<_n*_m;++i) element[i]=Mat.element[i];
+			clear();
+            _n=Mat.rowLength();
+            _m=Mat.columnLength();
+            if (_n*_m!=0) element=new T [_n*_m];
+            for(int i=0;i<_n;++i)
+            {
+                for(int j=0;j<_m;++j) element[i*_m+j]=Mat(i,j);
+            }
             return *this;
 		}
 
@@ -131,8 +134,8 @@ namespace sjtu
 		
 		Matrix &operator=(Matrix &&Mat) noexcept
 		{
-			if(&Mat==*this) return *this;
-            delete [] element;
+			if(&Mat==this) return *this;
+            clear();
             _n=Mat._n;
             _m=Mat._m;
             element=Mat.element;
@@ -141,7 +144,7 @@ namespace sjtu
 		}
 
 		//析构函数.
-		~Matrix() { delete [] element; }
+		~Matrix() { clear(); }
 
 
 		Matrix(std::initializer_list<std::initializer_list<T>> il)
@@ -180,7 +183,7 @@ namespace sjtu
 			    T *temp;
 			    temp=new T [n*m];
 			    for(int i=0;i<n*m;++i) temp[i]=element[i];
-                delete [] element;
+                clear();
                 element=temp;
                 _n=n;
                 _m=m;
@@ -192,7 +195,7 @@ namespace sjtu
                 temp=new T [n*m];
                 for(int i=0;i<_n*_m;++i) temp[i]=element[i];
                 for(int i=_n*_m+1;i<n*m;++i) temp[i]=_init;
-                delete [] element;
+                clear();
                 element=temp;
                 _n=n;
                 _m=m;
@@ -213,14 +216,7 @@ namespace sjtu
 		//回收.
 		void clear()
 		{
-			for(int i=0;i<_n;++i)
-            {
-			    for(int j=0;j<_m;++j)
-                {
-			        element[i*_m+j]=0;
-                }
-            }
-			delete [] element;
+		    if(element!=nullptr) { delete[] element; element=nullptr;}
 			_n=0;
 			_m=0;
 		}
@@ -266,12 +262,12 @@ namespace sjtu
 		template <class U>
 		bool operator == (const Matrix<U> &Mat) const
 		{
-			if(Mat._n!=_n || Mat._m!=_m) return false;
+			if(Mat.rowLength()!=_n || Mat.columnLength()!=_m) return false;
 			for(int i=0;i<_n;i++)
             {
 			    for(int j=0;j<_m;j++)
                 {
-			        if(Mat.element[j+i*_m]!=element[j+i*_m])  return false;
+			        if(Mat(i,j)!=element[j+i*_m])  return false;
                 }
             }
 			return true;
@@ -309,7 +305,7 @@ namespace sjtu
                     temp.element[j+i*_m]=element[j+i*_m]+Mat.element[j+i*_m];
                 }
             }
-            this->clear();
+            clear();
             *this=temp;
             return *this;
 		}
@@ -352,11 +348,12 @@ namespace sjtu
             Matrix<T> output;
             output._n=_m;
             output._m=_n;
+            if (_n*_m!=0) output.element=new T [_n*_m];
             for(int i=0;i<_n;++i)
             {
                 for(int j=0;j<_m;++j)
                 {
-                    output.element[j][i]=element[i][j];
+                    output.element[j*_n+i]=element[i*_m+j];
                 }
             }
             return output;
@@ -365,6 +362,11 @@ namespace sjtu
 	public: // iterator
 		class iterator
 		{
+		//Friend.
+		friend iterator Matrix::begin();
+		friend iterator Matrix::end();
+		friend std::pair<iterator, iterator> Matrix::subMatrix(std::pair<size_t, size_t> l, std::pair<size_t, size_t> r);
+
 		public:
 			using iterator_category = std::random_access_iterator_tag;
 			using value_type        = T;
@@ -544,7 +546,8 @@ namespace sjtu
 	{
 	    V temp_v;
 	    U temp_u;
-        Matrix<decltype(temp_v*temp_u)> temp(mat.size());
+        Matrix<decltype(temp_v*temp_u)> temp(mat);
+
         for(int i=0;i<mat.rowLength();++i)
         {
             for(int j=0;j<mat.columnLength();++j)
@@ -560,7 +563,8 @@ namespace sjtu
 	{
         V temp_v;
         U temp_u;
-        Matrix<decltype(temp_v*temp_u)> temp(mat.size());
+        Matrix<decltype(temp_v*temp_u)> temp(mat);
+
 		for(int i=0;i<mat.rowLength();++i)
         {
 		    for(int j=0;j<mat.columnLength();++j)
@@ -575,7 +579,9 @@ namespace sjtu
 	auto operator * (const Matrix<U> &a, const Matrix<V> &b)
 	{
 	    if(a.columnLength()!=b.rowLength()) throw std::invalid_argument("Error: Multiplication input incorrect.");
-        Matrix<decltype(a(0,0)*b(0,0))> temp(a.rowLength(),b.columnLength());
+	    U ua;
+	    V vb;
+        Matrix<decltype(ua*vb)> temp(a.rowLength(),b.columnLength());
         for(int i=0;i<temp.rowLength();++i)
         {
             for(int j=0;j<temp.columnLength();++j)
@@ -593,7 +599,11 @@ namespace sjtu
 	auto operator + (const Matrix<U> &a, const Matrix<V> &b)
 	{
         if(a.size()!=b.size()) throw std::invalid_argument("Error: Different size.");
-        Matrix<decltype(a(0,0)+b(0,0))> temp(a.size());
+
+        U ua;
+        V vb;
+        Matrix<decltype(ua+vb)> temp(a.size());
+
         for(int i=0;i<temp.rowLength();++i)
         {
             for(int j=0;j<temp.columnLength();++j)
