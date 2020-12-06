@@ -65,7 +65,18 @@ namespace sjtu
 		//类型转换......?
 		explicit Matrix(std::pair<size_t, size_t> sz, T _init = T())
 		{
-            Matrix(sz.first,sz.second,_init);
+		    size_t n=sz.first,m=sz.second;
+            _n=n;
+            _m=m;
+            if(n<0 || m<0) throw_error();
+            if(n*m!=0) element=new T [n*m];
+            for(int i=0;i<n;++i)
+            {
+                for(int j=0;j<m;++j)
+                {
+                    element[i*m+j]=_init;
+                }
+            }
 		}
 
 		//拷贝构造
@@ -205,7 +216,7 @@ namespace sjtu
 		
 		void resize(std::pair<size_t, size_t> sz, T _init = T())
 		{
-			resize({sz.first,sz.second},_init);
+			resize(sz.first,sz.second,_init);
 		}
 		
 		std::pair<size_t, size_t> size() const
@@ -473,7 +484,7 @@ namespace sjtu
 			
 			reference operator*() const
 			{
-                return Mat->element[pos_x*(right_-left_+1)+pos_y];
+                return (*Mat)(pos_x,pos_y);
 			}
 			
 			pointer operator->() const
@@ -588,7 +599,7 @@ namespace sjtu
             {
                 for(int k=0;k<a.columnLength();++k)
                 {
-                    temp(i,k)+=a(i,k)*b(k,j);
+                    temp(i,j)+=a(i,k)*b(k,j);
                 }
             }
         }
