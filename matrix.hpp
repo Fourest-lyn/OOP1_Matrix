@@ -39,11 +39,17 @@ namespace sjtu
 		T *element;
 
 	public:
+        static void throw_error()
+        {
+            throw std::invalid_argument("Error: Invalid input.");
+        }
+
 		Matrix() = default;
 
 		//构造函数
 		Matrix(size_t n, size_t m, T _init = T()):_n(n),_m(m)
 		{
+		    if(n<1 || m<1) throw_error();
 			element=new T [n*m];
 			for(int i=0;i<n;++i)
             {
@@ -90,16 +96,28 @@ namespace sjtu
             }
 		}
 
-		//todo: Complete this.
 		Matrix &operator = (const Matrix &Mat)
 		{
-			
+			if(&Mat==this) return *this;
+            delete [] element;
+            _n=Mat._n;
+            _m=Mat._m;
+            element=new T[_n*_m];
+            for(int i=0;i<_n*_m;++i) element[i]=Mat.element[i];
+            return *this;
 		}
 		
 		template <class U>
 		Matrix &operator = (const Matrix<U> &Mat)
 		{
-			
+			delete [] element;
+            Matrix<U> temp;
+            *this=temp;
+            _n=Mat._n;
+            _m=Mat._m;
+            element=new U[_n*_m];
+            for(int i=0;i<_n*_m;++i) element[i]=Mat.element[i];
+            return *this;
 		}
 
 		//移动构造，接管参数的空间.
@@ -125,10 +143,27 @@ namespace sjtu
 		//析构函数.
 		~Matrix() { delete [] element; }
 
-		//todo: Complete the initializer.
+
 		Matrix(std::initializer_list<std::initializer_list<T>> il)
 		{
-			
+            _n=il.size();
+            _m=il.begin()->size();
+            if(_n<1 || _m<1) throw_error();
+            element=new T[_n*_m];
+            int k=0;
+            auto iti=il.begin();
+            while(iti!=il.end())
+            {
+                auto itj=iti->begin();
+                while(itj!=iti->end())
+                {
+                    if(iti->size()!=_m) throw_error();
+                    element[k]=*itj;
+                    ++itj;
+                    ++k;
+                }
+                ++iti;
+            }
 		}
 		
 	public:
@@ -139,6 +174,7 @@ namespace sjtu
 		//Resize the Matrix.
 		void resize(size_t n, size_t m, T _init = T())
 		{
+		    if(n<1 || m<1) throw_error();
 			if(n*m<_n*_m)
             {
 			    T *temp;
@@ -192,16 +228,19 @@ namespace sjtu
 	public:
 		const T &operator () (size_t i, size_t j) const
 		{
+		    if(i>=_n || j>=_m) throw_error();
 			return element[i*_m+j];
 		}
 		
 		T &operator () (size_t i, size_t j)
 		{
+            if(i>=_n || j>=_m) throw_error();
 			return element[i*_m+j];
 		}
 		
 		Matrix<T> row(size_t i) const
 		{
+            if(i>=_n || i<0) throw_error();
 		    Matrix<T> temp_Mat(1,_m,0);
 			for(int j=0;j<_m;++j)
             {
@@ -210,12 +249,13 @@ namespace sjtu
 			return temp_Mat;
 		}
 		
-		Matrix<T> column(size_t i) const
+		Matrix<T> column(size_t j) const
 		{
+            if(j>=_n || j<0) throw_error();
 			Matrix<T> temp_Mat(_n,1,0);
-			for(int j=0;j<_n;++j)
+			for(int i=0;i<_n;++i)
             {
-			    temp_Mat.element[j]=element[j*_m+i];
+			    temp_Mat.element[i]=element[i*_m+j];
             }
 			return temp_Mat;
 		}
@@ -260,6 +300,7 @@ namespace sjtu
 		template <class U>
 		Matrix &operator += (const Matrix<U> &Mat)
 		{
+		    if(Mat.size()!=size()) throw_error();
             Matrix<decltype(element[0]+Mat.element[0])> temp(_n,_m);
             for(int i=0;i<_n;i++)
             {
@@ -276,6 +317,7 @@ namespace sjtu
 		template <class U>
 		Matrix &operator -= (const Matrix<U> &Mat)
 		{
+            if(Mat.size()!=size()) throw_error();
             Matrix<decltype(element[0]-Mat.element[0])> temp(_n,_m);
             for(int i=0;i<_n;i++)
             {
@@ -337,26 +379,31 @@ namespace sjtu
 			
 			iterator &operator=(const iterator &) = default;
 
-			
 		private:
 		    //To find the position.
-            size_type pos_x,pos_y;
+            size_type pos_x=0,pos_y=0;
 
             //To define in which matrix.
-			size_type left_,right_,up_,down_;
+			size_type left_=0,right_=0,up_=0,down_=0;
 			Matrix *Mat;
 
 
 		public:
 			difference_type operator-(const iterator &temp)
 			{
+                if(temp.Mat!=Mat) throw_error();
+                if(left_!=temp.left_ || right_!=temp.right_) throw_error();
+                if(up_!=temp.up_ || down_!=temp.down_) throw_error();
 
+                difference_type pos1=(pos_x-up_)*Mat->_m+(pos_y-left_);
+                difference_type pos2;
+                pos2=(temp.pos_x-temp.up_)*temp.Mat->_m+(temp.pos_y-temp.left_);
+                return pos1-pos2;
 			}
 			
 			iterator &operator+=(difference_type offset)
 			{
-			    iterator temp;
-			    temp=*this;
+			    pos_y+=offset;
 			    while(pos_y>right_)
                 {
 			        pos_y-=(right_-left_+1);
@@ -375,8 +422,7 @@ namespace sjtu
 			
 			iterator &operator-=(difference_type offset)
 			{
-                iterator temp;
-                temp=*this;
+                pos_y-=offset;
                 while(pos_y<left_)
                 {
                     pos_y+=(right_-left_+1);
@@ -528,7 +574,7 @@ namespace sjtu
 	template <class U, class V>
 	auto operator * (const Matrix<U> &a, const Matrix<V> &b)
 	{
-//	    if(a.columnLength()!=b.rowLength()) printf("[Error]\n");
+	    if(a.columnLength()!=b.rowLength()) throw std::invalid_argument("Error: Multiplication input incorrect.");
         Matrix<decltype(a(0,0)*b(0,0))> temp(a.rowLength(),b.columnLength());
         for(int i=0;i<temp.rowLength();++i)
         {
@@ -546,7 +592,7 @@ namespace sjtu
 	template <class U, class V>
 	auto operator + (const Matrix<U> &a, const Matrix<V> &b)
 	{
-//	    if(a.size()!=b.size()) printf("[Error]\n");
+        if(a.size()!=b.size()) throw std::invalid_argument("Error: Different size.");
         Matrix<decltype(a(0,0)+b(0,0))> temp(a.size());
         for(int i=0;i<temp.rowLength();++i)
         {
@@ -561,7 +607,7 @@ namespace sjtu
 	template <class U, class V>
 	auto operator - (const Matrix<U> &a, const Matrix<V> &b)
 	{
-//	    if(a.size()!=b.size()) printf("[Error]\n");
+        if(a.size()!=b.size()) throw std::invalid_argument("Error: Different size.");
         Matrix<decltype(a(0,0)-b(0,0))> temp(a.size());
         for(int i=0;i<temp.rowLength();++i)
         {
@@ -576,5 +622,3 @@ namespace sjtu
 }
 
 #endif //SJTU_MATRIX_HPP
-
-//todo: 增加鲁棒性调试.
