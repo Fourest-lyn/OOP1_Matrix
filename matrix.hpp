@@ -513,9 +513,9 @@ namespace sjtu
 		{
 			iterator temp;
 			temp.left_=0;
-			temp.right_=_m;
+			temp.right_=_m-1;
 			temp.up_=0;
-			temp.down_=_n;
+			temp.down_=_n-1;
 			temp.pos_x=0;
 			temp.pos_y=0;
 			temp.Mat=this;
@@ -526,9 +526,9 @@ namespace sjtu
 		{
             iterator temp;
             temp.left_=0;
-            temp.right_=_m;
+            temp.right_=_m-1;
             temp.up_=0;
-            temp.down_=_n;
+            temp.down_=_n-1;
             temp.pos_x=_n-1;
             temp.pos_y=_m-1;
             temp.Mat=this;
