@@ -162,16 +162,24 @@ namespace sjtu
 		{
             _n=il.size();
             _m=il.begin()->size();
+
             if(_n<1 || _m<1) throw_error();
+            auto it=il.begin();
+            while(it!=il.end())
+            {
+                if(it->size()!=_m) throw_error();
+                it++;
+            }
+
             element=new T[_n*_m];
             int k=0;
+
             auto iti=il.begin();
             while(iti!=il.end())
             {
                 auto itj=iti->begin();
                 while(itj!=iti->end())
                 {
-                    if(iti->size()!=_m) throw_error();
                     element[k]=*itj;
                     ++itj;
                     ++k;
@@ -205,7 +213,7 @@ namespace sjtu
                 T *temp;
                 temp=new T [n*m];
                 for(int i=0;i<_n*_m;++i) temp[i]=element[i];
-                for(int i=_n*_m+1;i<n*m;++i) temp[i]=_init;
+                for(int i=_n*_m;i<n*m;++i) temp[i]=_init;
                 clear();
                 element=temp;
                 _n=n;
